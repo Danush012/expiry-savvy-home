@@ -45,13 +45,13 @@ const Hero = () => {
           <div className="relative">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-4">
-                <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl transform rotate-3 hover:rotate-0 transition-transform duration-300">
+                <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl transition-transform duration-300 hover:scale-105">
                   <Shield className="h-12 w-12 text-green-600 mb-4" />
                   <h3 className="font-bold text-gray-900 mb-2">Protect Animals</h3>
                   <p className="text-gray-600 text-sm">Prevent expired food from harming street animals</p>
                 </div>
                 
-                <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl transform -rotate-2 hover:rotate-0 transition-transform duration-300">
+                <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl transition-transform duration-300 hover:scale-105">
                   <Recycle className="h-12 w-12 text-blue-600 mb-4" />
                   <h3 className="font-bold text-gray-900 mb-2">Reduce Pollution</h3>
                   <p className="text-gray-600 text-sm">Stop harmful gases from rotting food</p>
@@ -59,13 +59,13 @@ const Hero = () => {
               </div>
               
               <div className="space-y-4 mt-8">
-                <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl transform -rotate-3 hover:rotate-0 transition-transform duration-300">
+                <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl transition-transform duration-300 hover:scale-105">
                   <Bell className="h-12 w-12 text-purple-600 mb-4" />
                   <h3 className="font-bold text-gray-900 mb-2">Smart Alerts</h3>
                   <p className="text-gray-600 text-sm">Get notified before products expire</p>
                 </div>
                 
-                <div className="bg-gradient-to-br from-green-500 to-blue-600 p-6 rounded-2xl shadow-xl text-white transform rotate-2 hover:rotate-0 transition-transform duration-300">
+                <div className="bg-gradient-to-br from-green-500 to-blue-600 p-6 rounded-2xl shadow-xl text-white transition-transform duration-300 hover:scale-105">
                   <div className="text-3xl font-bold mb-2">85%</div>
                   <p className="text-sm opacity-90">Food waste reduction potential</p>
                 </div>
