@@ -1,15 +1,10 @@
 
 import emailjs from '@emailjs/browser';
 
-// EmailJS configuration
-const EMAILJS_SERVICE_ID = 'your_service_id'; // You'll get this from EmailJS
-const EMAILJS_TEMPLATE_ID = 'your_template_id'; // You'll get this from EmailJS
-const EMAILJS_PUBLIC_KEY = 'your_public_key'; // You'll get this from EmailJS
-
-// Twilio configuration (using Twilio's REST API)
-const TWILIO_ACCOUNT_SID = 'your_account_sid'; // You'll get this from Twilio
-const TWILIO_AUTH_TOKEN = 'your_auth_token'; // You'll get this from Twilio
-const TWILIO_PHONE_NUMBER = 'your_twilio_phone'; // Your Twilio phone number
+// These will be replaced with your actual credentials
+const EMAILJS_SERVICE_ID = 'service_your_id'; // Replace with your EmailJS service ID
+const EMAILJS_TEMPLATE_ID = 'template_your_id'; // Replace with your EmailJS template ID
+const EMAILJS_PUBLIC_KEY = 'your_public_key'; // Replace with your EmailJS public key
 
 export interface NotificationData {
   productName: string;
@@ -24,13 +19,14 @@ emailjs.init(EMAILJS_PUBLIC_KEY);
 
 export const sendEmailNotification = async (data: NotificationData): Promise<boolean> => {
   try {
-    console.log('Sending email notification for:', data.productName);
+    console.log('Sending email notification to:', data.userEmail);
     
     const templateParams = {
+      to_email: data.userEmail,
+      to_name: 'User',
       product_name: data.productName,
       expiry_date: data.expiryDate,
       days_left: data.daysLeft,
-      user_email: data.userEmail || 'user@example.com',
       message: `Your ${data.productName} will expire in ${data.daysLeft} days on ${data.expiryDate}. Please use it soon!`
     };
 
@@ -44,27 +40,25 @@ export const sendEmailNotification = async (data: NotificationData): Promise<boo
     return true;
   } catch (error) {
     console.error('Failed to send email:', error);
-    return false;
+    throw new Error('Failed to send email notification');
   }
 };
 
 export const sendSMSNotification = async (data: NotificationData): Promise<boolean> => {
   try {
-    console.log('Sending SMS notification for:', data.productName);
+    console.log('Sending SMS notification to:', data.userPhone);
     
     const message = `Food Alert: Your ${data.productName} expires in ${data.daysLeft} days (${data.expiryDate}). Use it soon to prevent waste!`;
     
-    // Using Twilio's REST API
-    const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`, {
+    // Using a serverless function approach for SMS
+    const response = await fetch('/api/send-sms', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`)}`
+        'Content-Type': 'application/json',
       },
-      body: new URLSearchParams({
-        From: TWILIO_PHONE_NUMBER,
-        To: data.userPhone || '+1234567890', // Default phone for demo
-        Body: message
+      body: JSON.stringify({
+        to: data.userPhone,
+        message: message
       })
     });
 
@@ -72,16 +66,17 @@ export const sendSMSNotification = async (data: NotificationData): Promise<boole
       console.log('SMS sent successfully');
       return true;
     } else {
-      console.error('Failed to send SMS:', await response.text());
-      return false;
+      const errorText = await response.text();
+      console.error('Failed to send SMS:', errorText);
+      throw new Error('Failed to send SMS notification');
     }
   } catch (error) {
     console.error('Failed to send SMS:', error);
-    return false;
+    throw new Error('Failed to send SMS notification');
   }
 };
 
-// Demo function for immediate testing
+// Demo function that shows what notifications would look like
 export const sendDemoNotification = (data: NotificationData, type: 'email' | 'sms'): void => {
   const message = `${type.toUpperCase()} NOTIFICATION: Your ${data.productName} expires in ${data.daysLeft} days (${data.expiryDate}). Use it soon!`;
   
@@ -97,7 +92,7 @@ export const sendDemoNotification = (data: NotificationData, type: 'email' | 'sm
   console.log(`📱 ${type.toUpperCase()} SENT:`, message);
   
   // Show alert for immediate feedback
-  alert(`Demo ${type.toUpperCase()} Notification:\n\n${message}`);
+  alert(`Demo ${type.toUpperCase()} Notification:\n\nTo: ${type === 'email' ? data.userEmail : data.userPhone}\n\n${message}`);
 };
 
 // Request notification permission

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Bell, Mail, MessageSquare, Settings } from 'lucide-react';
+import { Plus, Trash2, Bell, Mail, MessageSquare, Settings, Send } from 'lucide-react';
 import { useNotificationScheduler } from '../hooks/useNotificationScheduler';
-import { requestNotificationPermission, sendDemoNotification } from '../services/notificationService';
+import { requestNotificationPermission, sendEmailNotification, sendSMSNotification } from '../services/notificationService';
 import { useToast } from '@/hooks/use-toast';
 
 interface Product {
@@ -10,6 +10,8 @@ interface Product {
   expiryDate: string;
   notificationType: 'email' | 'sms';
   frequency: string;
+  userEmail?: string;
+  userPhone?: string;
 }
 
 const GetNotified = () => {
@@ -18,7 +20,9 @@ const GetNotified = () => {
     name: '',
     expiryDate: '',
     notificationType: 'email' as 'email' | 'sms',
-    frequency: '1_week_before'
+    frequency: '1_week_before',
+    userEmail: '',
+    userPhone: ''
   });
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const { toast } = useToast();
@@ -33,45 +37,99 @@ const GetNotified = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.name && formData.expiryDate) {
-      const newProduct: Product = {
-        id: Date.now(),
-        name: formData.name,
-        expiryDate: formData.expiryDate,
-        notificationType: formData.notificationType,
-        frequency: formData.frequency
-      };
-      setProducts([...products, newProduct]);
-      setFormData({
-        name: '',
-        expiryDate: '',
-        notificationType: 'email',
-        frequency: '1_week_before'
-      });
-      
+    
+    // Validation
+    if (!formData.name || !formData.expiryDate) {
       toast({
-        title: "Product Added",
-        description: `${formData.name} has been added to your tracking list with ${formData.notificationType} notifications.`,
+        title: "Error",
+        description: "Please fill in product name and expiry date.",
+        variant: "destructive",
       });
+      return;
     }
+
+    if (formData.notificationType === 'email' && !formData.userEmail) {
+      toast({
+        title: "Error",
+        description: "Please provide an email address for email notifications.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.notificationType === 'sms' && !formData.userPhone) {
+      toast({
+        title: "Error",
+        description: "Please provide a phone number for SMS notifications.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newProduct: Product = {
+      id: Date.now(),
+      name: formData.name,
+      expiryDate: formData.expiryDate,
+      notificationType: formData.notificationType,
+      frequency: formData.frequency,
+      userEmail: formData.userEmail || undefined,
+      userPhone: formData.userPhone || undefined
+    };
+    
+    setProducts([...products, newProduct]);
+    setFormData({
+      name: '',
+      expiryDate: '',
+      notificationType: 'email',
+      frequency: '1_week_before',
+      userEmail: '',
+      userPhone: ''
+    });
+    
+    toast({
+      title: "Product Added",
+      description: `${formData.name} has been added to your tracking list with ${formData.notificationType} notifications.`,
+    });
   };
 
   const removeProduct = (id: number) => {
     setProducts(products.filter(product => product.id !== id));
   };
 
-  const testNotification = (product: Product) => {
+  const testNotification = async (product: Product) => {
     const daysUntilExpiry = getDaysUntilExpiry(product.expiryDate);
-    sendDemoNotification({
-      productName: product.name,
-      expiryDate: product.expiryDate,
-      daysLeft: daysUntilExpiry
-    }, product.notificationType);
     
-    toast({
-      title: "Test Notification Sent",
-      description: `Demo ${product.notificationType} notification sent for ${product.name}`,
-    });
+    try {
+      if (product.notificationType === 'email' && product.userEmail) {
+        await sendEmailNotification({
+          productName: product.name,
+          expiryDate: product.expiryDate,
+          daysLeft: daysUntilExpiry,
+          userEmail: product.userEmail
+        });
+        toast({
+          title: "Test Email Sent",
+          description: `Test email notification sent to ${product.userEmail}`,
+        });
+      } else if (product.notificationType === 'sms' && product.userPhone) {
+        await sendSMSNotification({
+          productName: product.name,
+          expiryDate: product.expiryDate,
+          daysLeft: daysUntilExpiry,
+          userPhone: product.userPhone
+        });
+        toast({
+          title: "Test SMS Sent",
+          description: `Test SMS notification sent to ${product.userPhone}`,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Test Failed",
+        description: `Failed to send test notification: ${error}`,
+        variant: "destructive",
+      });
+    }
   };
 
   const getDaysUntilExpiry = (expiryDate: string) => {
@@ -167,6 +225,37 @@ const GetNotified = () => {
               </div>
             </div>
 
+            {/* Email Input - Show only when email is selected */}
+            {formData.notificationType === 'email' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                <input
+                  type="email"
+                  value={formData.userEmail}
+                  onChange={(e) => setFormData({...formData, userEmail: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  placeholder="your.email@example.com"
+                  required
+                />
+              </div>
+            )}
+
+            {/* Phone Input - Show only when SMS is selected */}
+            {formData.notificationType === 'sms' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                <input
+                  type="tel"
+                  value={formData.userPhone}
+                  onChange={(e) => setFormData({...formData, userPhone: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  placeholder="+1234567890"
+                  required
+                />
+                <p className="text-sm text-gray-500 mt-1">Include country code (e.g., +1 for US)</p>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Notification Frequency</label>
               <select
@@ -179,7 +268,7 @@ const GetNotified = () => {
                 <option value="5_days_before">5 Days Before</option>
                 <option value="2_days_before">2 Days Before</option>
                 <option value="1_day_before">1 Day Before</option>
-                <option value="5_minutes_before">5 Minutes Before</option>
+                <option value="same_day">Same Day</option>
               </select>
             </div>
 
@@ -219,7 +308,7 @@ const GetNotified = () => {
                             }
                           </span>
                           <span className="text-sm text-gray-500">
-                            via {product.notificationType === 'email' ? 'Email' : 'SMS'}
+                            via {product.notificationType === 'email' ? `Email (${product.userEmail})` : `SMS (${product.userPhone})`}
                           </span>
                         </div>
                       </div>
@@ -227,10 +316,10 @@ const GetNotified = () => {
                       <div className="flex space-x-2">
                         <button
                           onClick={() => testNotification(product)}
-                          className="text-blue-600 hover:text-blue-800 p-2"
-                          title="Test notification"
+                          className="text-blue-600 hover:text-blue-800 p-2 flex items-center space-x-1"
+                          title="Send test notification"
                         >
-                          <Settings className="h-5 w-5" />
+                          <Send className="h-5 w-5" />
                         </button>
                         <button
                           onClick={() => removeProduct(product.id)}
@@ -249,6 +338,21 @@ const GetNotified = () => {
       </div>
     </div>
   );
+};
+
+const getDaysUntilExpiry = (expiryDate: string) => {
+  const today = new Date();
+  const expiry = new Date(expiryDate);
+  const timeDiff = expiry.getTime() - today.getTime();
+  const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+  return daysDiff;
+};
+
+const getStatusColor = (days: number) => {
+  if (days < 0) return 'text-red-600 bg-red-50';
+  if (days <= 3) return 'text-orange-600 bg-orange-50';
+  if (days <= 7) return 'text-yellow-600 bg-yellow-50';
+  return 'text-green-600 bg-green-50';
 };
 
 export default GetNotified;

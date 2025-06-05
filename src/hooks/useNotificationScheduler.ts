@@ -1,6 +1,6 @@
 
 import { useEffect, useCallback } from 'react';
-import { sendEmailNotification, sendSMSNotification, sendDemoNotification, NotificationData } from '../services/notificationService';
+import { sendEmailNotification, sendSMSNotification, NotificationData } from '../services/notificationService';
 
 interface Product {
   id: number;
@@ -8,50 +8,54 @@ interface Product {
   expiryDate: string;
   notificationType: 'email' | 'sms';
   frequency: string;
+  userEmail?: string;
+  userPhone?: string;
 }
 
 export const useNotificationScheduler = (products: Product[]) => {
   const checkExpiryAndNotify = useCallback(async () => {
     console.log('Checking products for notifications...');
     
-    products.forEach(async (product) => {
+    for (const product of products) {
       const daysUntilExpiry = getDaysUntilExpiry(product.expiryDate);
       const shouldNotify = shouldSendNotification(daysUntilExpiry, product.frequency);
       
       if (shouldNotify) {
-        console.log(`Sending notification for ${product.name}`);
+        console.log(`Sending ${product.notificationType} notification for ${product.name}`);
         
         const notificationData: NotificationData = {
           productName: product.name,
           expiryDate: product.expiryDate,
           daysLeft: daysUntilExpiry,
-          userEmail: 'user@example.com', // Replace with actual user email
-          userPhone: '+1234567890' // Replace with actual user phone
+          userEmail: product.userEmail,
+          userPhone: product.userPhone
         };
 
-        // For demo purposes, use demo notifications
-        // In production, use the actual email/SMS services
-        sendDemoNotification(notificationData, product.notificationType);
-        
-        // Uncomment these for production:
-        // if (product.notificationType === 'email') {
-        //   await sendEmailNotification(notificationData);
-        // } else {
-        //   await sendSMSNotification(notificationData);
-        // }
+        try {
+          if (product.notificationType === 'email' && product.userEmail) {
+            await sendEmailNotification(notificationData);
+            console.log(`Email sent successfully to ${product.userEmail}`);
+          } else if (product.notificationType === 'sms' && product.userPhone) {
+            await sendSMSNotification(notificationData);
+            console.log(`SMS sent successfully to ${product.userPhone}`);
+          }
+        } catch (error) {
+          console.error(`Failed to send ${product.notificationType} notification:`, error);
+        }
       }
-    });
+    }
   }, [products]);
 
-  // Check notifications every minute (for demo purposes)
+  // Check notifications every hour in production (3600000ms)
+  // For testing, you can change this to 60000 (1 minute)
   useEffect(() => {
     if (products.length === 0) return;
     
     // Initial check
     checkExpiryAndNotify();
     
-    // Set up interval to check every minute
-    const interval = setInterval(checkExpiryAndNotify, 60000);
+    // Set up interval to check every hour
+    const interval = setInterval(checkExpiryAndNotify, 3600000);
     
     return () => clearInterval(interval);
   }, [checkExpiryAndNotify]);
@@ -78,8 +82,8 @@ const shouldSendNotification = (daysLeft: number, frequency: string): boolean =>
       return daysLeft === 2;
     case '1_day_before':
       return daysLeft === 1;
-    case '5_minutes_before':
-      return daysLeft === 0; // For demo, treat as same day
+    case 'same_day':
+      return daysLeft === 0;
     default:
       return false;
   }
