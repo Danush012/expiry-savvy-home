@@ -1,6 +1,8 @@
-
-import React, { useState } from 'react';
-import { Plus, Trash2, Bell, Mail, MessageSquare } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Trash2, Bell, Mail, MessageSquare, Settings } from 'lucide-react';
+import { useNotificationScheduler } from '../hooks/useNotificationScheduler';
+import { requestNotificationPermission, sendDemoNotification } from '../services/notificationService';
+import { useToast } from '@/hooks/use-toast';
 
 interface Product {
   id: number;
@@ -18,6 +20,16 @@ const GetNotified = () => {
     notificationType: 'email' as 'email' | 'sms',
     frequency: '1_week_before'
   });
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const { toast } = useToast();
+
+  // Initialize notification scheduler
+  useNotificationScheduler(products);
+
+  useEffect(() => {
+    // Request notification permission on component mount
+    requestNotificationPermission().then(setNotificationsEnabled);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,11 +48,30 @@ const GetNotified = () => {
         notificationType: 'email',
         frequency: '1_week_before'
       });
+      
+      toast({
+        title: "Product Added",
+        description: `${formData.name} has been added to your tracking list with ${formData.notificationType} notifications.`,
+      });
     }
   };
 
   const removeProduct = (id: number) => {
     setProducts(products.filter(product => product.id !== id));
+  };
+
+  const testNotification = (product: Product) => {
+    const daysUntilExpiry = getDaysUntilExpiry(product.expiryDate);
+    sendDemoNotification({
+      productName: product.name,
+      expiryDate: product.expiryDate,
+      daysLeft: daysUntilExpiry
+    }, product.notificationType);
+    
+    toast({
+      title: "Test Notification Sent",
+      description: `Demo ${product.notificationType} notification sent for ${product.name}`,
+    });
   };
 
   const getDaysUntilExpiry = (expiryDate: string) => {
@@ -65,6 +96,16 @@ const GetNotified = () => {
           <Bell className="h-16 w-16 text-green-600 mx-auto mb-6" />
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Get Notified</h1>
           <p className="text-xl text-gray-600">Track your household products and never let them expire again</p>
+          
+          {/* Notification Status */}
+          <div className="mt-4 p-4 bg-white rounded-lg shadow-sm">
+            <div className="flex items-center justify-center space-x-2">
+              <Bell className={`h-5 w-5 ${notificationsEnabled ? 'text-green-600' : 'text-gray-400'}`} />
+              <span className={`text-sm ${notificationsEnabled ? 'text-green-600' : 'text-gray-600'}`}>
+                Browser notifications {notificationsEnabled ? 'enabled' : 'disabled'}
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Add Product Form */}
@@ -183,12 +224,21 @@ const GetNotified = () => {
                         </div>
                       </div>
                       
-                      <button
-                        onClick={() => removeProduct(product.id)}
-                        className="text-red-600 hover:text-red-800 p-2"
-                      >
-                        <Trash2 className="h-5 w-5" />
-                      </button>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => testNotification(product)}
+                          className="text-blue-600 hover:text-blue-800 p-2"
+                          title="Test notification"
+                        >
+                          <Settings className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => removeProduct(product.id)}
+                          className="text-red-600 hover:text-red-800 p-2"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
