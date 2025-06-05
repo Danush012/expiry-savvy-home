@@ -1,10 +1,10 @@
 
 import emailjs from '@emailjs/browser';
 
-// These will be replaced with your actual credentials
-const EMAILJS_SERVICE_ID = 'service_your_id'; // Replace with your EmailJS service ID
-const EMAILJS_TEMPLATE_ID = 'template_your_id'; // Replace with your EmailJS template ID
-const EMAILJS_PUBLIC_KEY = 'your_public_key'; // Replace with your EmailJS public key
+// REPLACE THESE WITH YOUR ACTUAL EMAILJS CREDENTIALS
+const EMAILJS_SERVICE_ID = 'service_your_id'; // Replace with your EmailJS service ID from step 3
+const EMAILJS_TEMPLATE_ID = 'template_your_id'; // Replace with your EmailJS template ID from step 4  
+const EMAILJS_PUBLIC_KEY = 'your_public_key'; // Replace with your EmailJS public key from step 5
 
 export interface NotificationData {
   productName: string;
